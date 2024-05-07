@@ -1,17 +1,35 @@
-export const startOfEpoch3 = 1560905;
-export const endOfEpoch3 = 1905514;
+import exp from "constants";
 
-export const startOfEpoch4 = endOfEpoch3 + 1;
-export const endOfEpoch4 = 2207893;
+export const startOfEpoch1 = 178_473;
+export const endOfEpoch1 = 1_258_497;
 
-export const startOfEpoch5 = endOfEpoch4 + 1;
-export const endOfEpoch5 = 2510293;
+export const startOfEpoch2 = 1_258_498; // endOfEpoch1 + 1;
+export const endOfEpoch2 = 1_560_904;
 
-export const startOfEpoch6 = endOfEpoch5 + 1;
-export const endOfEpoch6 = 2812693;
+export const startOfEpoch3 = 1_560_905; // endOfEpoch2 + 1;
+export const endOfEpoch3 = 1_905_514;
+
+export const startOfEpoch4 = 1_905_515; // endOfEpoch3 + 1;
+export const endOfEpoch4 = 2_207_893;
+
+export const startOfEpoch5 = 2_207_894; // endOfEpoch4 + 1;
+export const endOfEpoch5 = 2_510_293;
+
+export const startOfEpoch6 = 2_510_294; // endOfEpoch5 + 1;
+export const endOfEpoch6 = 2_812_693;
 
 export const startOfEpoch7 = endOfEpoch6 + 1;
-export const endOfEpoch7 = 3115093;
+export const endOfEpoch7 = 3_115_093;
+
+export const epochs = [
+  { start: startOfEpoch1, end: endOfEpoch1 },
+  { start: startOfEpoch2, end: endOfEpoch2 },
+  { start: startOfEpoch3, end: endOfEpoch3 },
+  { start: startOfEpoch4, end: endOfEpoch4 },
+  { start: startOfEpoch5, end: endOfEpoch5 },
+  { start: startOfEpoch6, end: endOfEpoch6 },
+  { start: startOfEpoch7, end: endOfEpoch7 },
+] as const;
 
 export const PUNKS40 = "999f220296B5843b2909Cc5f8b4204AacA5341D8";
 export const PUNKS20 = "9a50953716bA58e3d6719Ea5c437452ac578705F";
@@ -48,6 +66,26 @@ export type MarketKeys = (typeof markets)[number]["key"];
 
 export const schema = "sgd83"; // TODO: Replace with dynamic lookup
 
-export const dataDirectory = ""; // Fill in with absolute path to data directory
+// export const dataDirectory = ""; // Fill in with absolute path to data directory
 
+export const dataDirectory = "E:/Windows_Folders/Documents/points-ts/dump";
 if (!dataDirectory) throw new Error("dataDirectory not set");
+
+export const v = 0.7;
+export const d = 0.3;
+export const nu = 5;
+
+export const minSpread = 1e-6;
+export const maxSpread = 0.02;
+
+export const phi = (spread: number) => {
+  const s = Math.abs(spread);
+  if (s < minSpread) return minSpread;
+  if (s > maxSpread) return Infinity;
+  return s;
+};
+
+export const phiPrime = (spread: number) => {
+  const s = Math.abs(spread);
+  return Math.max(s, minSpread) ** 3;
+};

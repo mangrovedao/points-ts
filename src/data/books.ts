@@ -21,7 +21,8 @@ const fileHeader = "block,book";
 const getBooks = async (base: string, quote: string, key: keyof typeof blocksPerQuery) => {
   const file = path.join(constants.dataDirectory, "books", `${key}.csv`);
 
-  const midPriceQuery = await fs.readFile(path.join(__dirname, `books.sql`), "utf-8");
+  let booksQuery = await fs.readFile(path.join(__dirname, `books.sql`), "utf-8");
+  booksQuery = booksQuery.replace(/sgd10/g, constants.schema);
 
   logger.info(`Getting all books for ${key}`);
   let start = 0;
@@ -49,7 +50,7 @@ const getBooks = async (base: string, quote: string, key: keyof typeof blocksPer
 
     const endBlock = Math.min(block + blocksPerQuery[key], end);
 
-    const res = await client.query(midPriceQuery, [base, quote, block, endBlock]);
+    const res = await client.query(booksQuery, [base, quote, block, endBlock]);
     const timeToQuery = process.hrtime.bigint() - startingTime;
     if (res.rows.length > 0) {
       pendingRows.push(...res.rows);
