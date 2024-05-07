@@ -1,0 +1,16 @@
+{
+  "name": "points-ts",
+  "version": "0.0.1",
+  "main": "src/calculate.ts",
+  "repository": "https://github.com/mangrovedao/points-ts.git",
+  "author": "Daniel <16984675+DanielRX@users.noreply.github.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.12.10"
+  },
+  "dependencies": {
+    "pg": "^8.11.5",
+    "viem": "^2.10.1",
+    "winston": "^3.13.0"
+  }
+}
