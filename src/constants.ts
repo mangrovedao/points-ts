@@ -50,3 +50,4 @@ export const schema = "sgd83"; // TODO: Replace with dynamic lookup
 
 export const dataDirectory = ""; // Fill in with absolute path to data directory
 
+if (!dataDirectory) throw new Error("dataDirectory not set");
