@@ -10,7 +10,7 @@ const midPrices = {} as { [K in constants.MarketKeys]: PricesForMarket };
 export const loadMidPrices = async () => {
   for (const { key } of constants.markets) {
     const priceFile = path.join(constants.dataDirectory, "prices", `${key}.csv`);
-    const pricesFromFile = await utils.readCSV<{ block: string; price: string }>(`${priceFile}.csv`);
+    const pricesFromFile = await utils.readCSV<{ block: string; price: string }>(priceFile);
     const prices = pricesFromFile.reduce((acc, { block, price }) => {
       acc[Number(block)] = JSON.parse(price);
       return acc;
