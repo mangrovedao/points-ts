@@ -1,6 +1,8 @@
 import fs from "fs";
+import fsP from "fs/promises";
 import readline from "readline";
 import { MarketKeys } from "./constants";
+import { createPublicClient, http } from "viem";
 
 export async function processLineByLine(name: string, f: (line: string) => void) {
   const fileStream = fs.createReadStream(name);
@@ -77,3 +79,16 @@ type Bases = "WETH" | "PUNKS20" | "PUNKS40";
 type Quotes = "WETH" | "USDB";
 export const getBase = (key: MarketKeys) => key.split("_")[0] as Bases;
 export const getQuote = (key: MarketKeys) => key.split("_")[1] as Quotes;
+
+export const publicClient = createPublicClient({ transport: http("https://rpc.blast.io") });
+
+export const getBlockNumber = async () => publicClient.getBlockNumber().then(Number);
+
+export const existsAsync = async (path: string) => {
+  try {
+    await fsP.access(path);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};

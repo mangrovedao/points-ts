@@ -4,23 +4,12 @@ import fs from "fs/promises";
 import * as constants from "../constants";
 import * as utils from "../utils";
 import { client } from "../db";
-import { createPublicClient, http } from "viem";
 import logger from "../logger";
 
 import path from "path";
 
-const publicClient = createPublicClient({ transport: http("https://rpc.blast.io") });
-
 const blocksPerQuery = 10_000;
-
-const existsAsync = async (path: string) => {
-  try {
-    await fs.access(path);
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
+const fileHeader = "block,price";
 
 /**
  * Gets all mid prices for a given market and stores them in a CSV file
@@ -39,13 +28,13 @@ const getPrices = async (base: string, quote: string, key: string) => {
   logger.info(`Getting all mid prices for ${key}`);
 
   let start = 0;
-  const end = await publicClient.getBlockNumber().then(Number);
+  const end = await utils.getBlockNumber();
 
   // Check if the file exists, and if it does, load the last line to get the last block we pulled
-  if (await existsAsync(file)) {
+  if (await utils.existsAsync(file)) {
     const lastLine = await utils.lastLine(file);
     const lastBlock = Number(lastLine?.split(",")[0]);
-    if (lastLine === "block,price") {
+    if (lastLine === fileHeader) {
       logger.warn(`No data found for ${key}, attempting to start from genesis`);
       start = 0;
     } else {
@@ -57,7 +46,7 @@ const getPrices = async (base: string, quote: string, key: string) => {
     }
   } else {
     // If the file doesn't exist, create it with the headers
-    await fs.writeFile(file, "block,price\n");
+    await fs.writeFile(file, `${fileHeader}\n`);
   }
 
   // Store pending rows to save on I/O
@@ -82,7 +71,7 @@ const getPrices = async (base: string, quote: string, key: string) => {
       pendingRows = [];
     }
 
-    logger.info(`Getting prices for ${key} from block ${block} to ${endBlock}  (${pendingRows.length.toString().padStart(5, " ")}) pending rows | Timings - Query: ${timeToQuery / 10n ** 6n}s`);
+    logger.debug(`Getting prices for ${key} from block ${block.toString().padStart("1000000000".length, " ")} to ${endBlock.toString().padStart("1000000000".length, " ")}  (${pendingRows.length.toString().padStart(5, " ")}) pending rows | Timings - Query: ${timeToQuery / 10n ** 6n}s`);
   }
 
   // Store any pending rows to the CSV file
@@ -121,7 +110,7 @@ const cleanUpPrices = async (key: string) => {
 
 export const main = async () => {
   await client.connect();
-  fs.mkdir(path.join(constants.dataDirectory, "prices"), { recursive: true }).catch((e) => {});
+  await fs.mkdir(path.join(constants.dataDirectory, "prices"), { recursive: true });
 
   for (let i = 0; i < constants.markets.length; i++) {
     const { base, quote, key } = constants.markets[i];
