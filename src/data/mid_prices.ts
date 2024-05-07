@@ -38,9 +38,7 @@ const getPrices = async (base: string, quote: string, key: string) => {
       logger.warn(`No data found for ${key}, attempting to start from genesis`);
       start = 0;
     } else {
-      if (Number.isNaN(lastBlock)) {
-        throw new Error(`Could not parse block number from ${lastBlock}`);
-      }
+      if (Number.isNaN(lastBlock)) throw new Error(`Could not parse block number from ${lastBlock}`);
       logger.info(`Last block for ${key} is ${lastBlock}`);
       start = lastBlock;
     }

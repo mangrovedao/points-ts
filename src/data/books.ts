@@ -8,27 +8,25 @@ import logger from "../logger";
 
 import path from "path";
 
-const blocksPerQuery = 100_000; // 100k blocks per query is fine for WETH_USDB fills
-const fileHeader = "block,fills";
+// Depending on the market, we need to query different amounts of blocks
+const blocksPerQuery = { WETH_USDB: 10_000, PUNKS20_WETH: 1_000_000, PUNKS40_WETH: 1_000_000 };
+const fileHeader = "block,book";
 
 /**
- * Gets all fills for a given market and stores them in a CSV file
+ * Gets all books for a given market and stores them in a CSV file
  * @param base The base token for the market
  * @param quote The quote token for the market
  * @param key The combined key for the market
  */
-const getFills = async (base: string, quote: string, key: string) => {
-  const file = path.join(constants.dataDirectory, "fills", `${key}.csv`);
+const getBooks = async (base: string, quote: string, key: keyof typeof blocksPerQuery) => {
+  const file = path.join(constants.dataDirectory, "books", `${key}.csv`);
 
-  let fillsQuery = await fs.readFile(path.join(__dirname, `fills.sql`), "utf-8");
-  fillsQuery = fillsQuery.replace(/sgd10/g, constants.schema);
+  const midPriceQuery = await fs.readFile(path.join(__dirname, `books.sql`), "utf-8");
 
-  logger.info(`Getting all fills for ${key}`);
-
+  logger.info(`Getting all books for ${key}`);
   let start = 0;
   const end = await utils.getBlockNumber();
 
-  // Check if the file exists, and if it does, load the last line to get the last block we pulled
   if (await utils.existsAsync(file)) {
     const lastLine = await utils.lastLine(file);
     const lastBlock = Number(lastLine?.split(",")[0]);
@@ -37,8 +35,7 @@ const getFills = async (base: string, quote: string, key: string) => {
       start = 0;
     } else {
       if (Number.isNaN(lastBlock)) throw new Error(`Could not parse block number from ${lastBlock}`);
-      logger.info(`Last block for ${key} is ${lastBlock}`);
-      start = lastBlock + 1; // We don't need to re-query the last block itself
+      start = lastBlock + 1;
     }
   } else {
     // If the file doesn't exist, create it with the headers
@@ -47,12 +44,12 @@ const getFills = async (base: string, quote: string, key: string) => {
 
   let pendingRows: {}[] = [];
 
-  for (let block = start; block <= end; block += blocksPerQuery) {
+  for (let block = start; block <= end; block += blocksPerQuery[key]) {
     const startingTime = process.hrtime.bigint();
 
-    const endBlock = Math.min(block + blocksPerQuery, end);
+    const endBlock = Math.min(block + blocksPerQuery[key], end);
 
-    const res = await client.query(fillsQuery, [base, quote, block, endBlock]);
+    const res = await client.query(midPriceQuery, [base, quote, block, endBlock]);
     const timeToQuery = process.hrtime.bigint() - startingTime;
     if (res.rows.length > 0) {
       pendingRows.push(...res.rows);
@@ -65,7 +62,7 @@ const getFills = async (base: string, quote: string, key: string) => {
       pendingRows = [];
     }
 
-    logger.debug(`Getting fills for ${key} from block ${block.toString().padStart("1000000000".length, " ")} to ${endBlock.toString().padStart("1000000000".length, " ")}  (${pendingRows.length.toString().padStart(5, " ")}) pending rows | Timings - Query: ${timeToQuery / 10n ** 6n}s`);
+    logger.debug(`Getting books for ${key} from block ${block} to ${endBlock}  (${pendingRows.length.toString().padStart(5, " ")}) pending rows | Timings - Query: ${timeToQuery / 10n ** 6n}s`);
   }
 
   // Store any pending rows
@@ -75,11 +72,11 @@ const getFills = async (base: string, quote: string, key: string) => {
 
 export const main = async () => {
   await client.connect();
-  await fs.mkdir(path.join(constants.dataDirectory, "fills"), { recursive: true });
+  await fs.mkdir(path.join(constants.dataDirectory, "books"), { recursive: true });
 
   for (let i = 0; i < constants.markets.length; i++) {
     const { base, quote, key } = constants.markets[i];
-    await getFills(base, quote, key);
+    await getBooks(base, quote, key);
   }
 
   await client.end();
