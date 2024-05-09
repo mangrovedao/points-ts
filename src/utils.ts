@@ -4,7 +4,7 @@ import readline from "readline";
 import { MarketKeys } from "./constants";
 import { createPublicClient, http } from "viem";
 
-export async function processLineByLine(name: string, f: (line: string) => void) {
+export async function processLineByLine(name: string, f: (line: string) => void, stopFn?: (line: string) => boolean) {
   const fileStream = fs.createReadStream(name);
   const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
 
@@ -16,6 +16,7 @@ export async function processLineByLine(name: string, f: (line: string) => void)
       first = false;
       continue;
     }
+    if (stopFn && stopFn(line)) break;
     f(line);
     i++;
   }
@@ -38,6 +39,7 @@ export async function lastLine(name: string) {
 
 export const remove0xPrefix = (hexString: string) => hexString.replace("0x", "").toLowerCase();
 export const eq = (a: string, b: string) => remove0xPrefix(a) === remove0xPrefix(b);
+export const fmtNumber = (x: number) => x.toFixed(100).replace(/0+$/, "").replace(/\.$/, "");
 
 export const convertToCSV = <T>(data: T[]) => {
   if (data.length === 0) return { out: "", headers: [] };
@@ -45,7 +47,18 @@ export const convertToCSV = <T>(data: T[]) => {
   const headers = Object.keys(data[0] as any) as (keyof T)[];
   for (let i = 0; i < data.length; i++) {
     for (let j = 0; j < headers.length; j++) {
-      const val = JSON.stringify(data[i][headers[j]]);
+      const v = data[i][headers[j]];
+      let val = "";
+      switch (typeof v) {
+        case "number":
+          val = fmtNumber(v);
+          break;
+        case "string":
+          val = v;
+          break;
+        default:
+          val = JSON.stringify(v);
+      }
       out += headers[j] === "book__" ? `"${val}"` : val;
       if (j < headers.length - 1) out += ",";
     }
