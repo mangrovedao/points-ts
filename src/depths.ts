@@ -1,5 +1,4 @@
 import fs from "fs";
-import crypto from "crypto";
 
 import * as constants from "./constants";
 import * as utils from "./utils";
@@ -27,7 +26,7 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
   let lastBlock = -1;
   let lastBlockData: BlockData = {};
 
-  const allBlockData: { [block: number]: BlockData } = {};
+  const allBlockData: { [block: number]: { repeats: number; depths: BlockData } } = {};
 
   const blocksSeen: BlocksSeen = {};
 
