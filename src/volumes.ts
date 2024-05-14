@@ -80,6 +80,7 @@ export const getVolumesForEpoch = async (key: constants.MarketKeys, epoch: Epoch
 };
 
 const main = async () => {
+  console.time("volumes");
   const cumulativeVolumes = {};
   const uniqueUsers = {};
   const seenOnDay = {};
@@ -122,6 +123,8 @@ const main = async () => {
     await fs.writeFile(path.join(constants.dataDirectory, "volume", "unique_users", `${key}.csv`), headersUsers + "\n" + outUsers);
     await fs.writeFile(path.join(constants.dataDirectory, "volume", "seen_on_day", `${key}.csv`), headersSeen + "\n" + outSeen);
   }
+
+  console.timeEnd("volumes");
 };
 
 main();

@@ -10,8 +10,6 @@ type TakerVolume = { address: string; usd: string };
 
 type MarketKeys = (typeof constants.markets)[number]["key"];
 
-const addresses = new Set();
-
 type MakerScore = { seenCount: number; D_u: number; mpPrime: number; D_u_d: number; D_a: number; D_b: number; uptime: number; mp: number; u_u: number; mVolume: number; amp: number };
 type Offer = { maker: string; offer_type: "ask" | "bid"; price: string; gives_display: string };
 
@@ -21,12 +19,10 @@ type BlocksSeen = { [Maker: string]: number };
 const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBlock: number, lastEpochStart: number, lastEpochEnd: number, seenOnMarket: Set<string>) => {
   const blocksToSee = endBlock - startBlock + 1;
 
-  const makerScores: { [key: string]: MakerScore } = {};
+  let makerScores: { [key: string]: MakerScore } = {};
 
   let lastBlock = -1;
   let lastBlockData: BlockData = {};
-
-  const allBlockData: { [block: number]: { repeats: number; depths: BlockData } } = {};
 
   const blocksSeen: BlocksSeen = {};
 
@@ -45,14 +41,12 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
   const computeDepthForBook = (book: Offer[], block: number, key: MarketKeys) => {
     const makers = [...new Set(book.map((offer) => offer.maker))];
 
+    const priceOfQuoteInUSD = key.endsWith("_USDB") ? 1 : midPriceUtils.midPriceForBaseInUSD({ key: `${utils.getQuote(key) as "WETH"}_USDB`, block });
+    const priceOfBaseInQuote = midPriceUtils.findMidPrice({ key, block });
+    const midPrice = midPriceUtils.findMidPrice({ key, block });
+
     for (const maker of makers) {
-      addresses.add(maker);
       seenOnMarket.add(maker);
-
-      const priceOfQuoteInUSD = key.endsWith("_USDB") ? 1 : midPriceUtils.midPriceForBaseInUSD({ key: `${utils.getQuote(key) as "WETH"}_USDB`, block });
-      const priceOfBaseInQuote = midPriceUtils.findMidPrice({ key, block });
-
-      const midPrice = midPriceUtils.findMidPrice({ key, block });
 
       const offers = book
         .filter((val) => val.maker === maker)
@@ -91,8 +85,6 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
       makerScores[maker].D_b += bidMpRaw;
       blocksSeen[maker] = (blocksSeen[maker] ?? 0) + U;
     }
-
-    allBlockData[block] = { repeats: 0, depths: lastBlockData };
   };
 
   let cachedLine = "";
@@ -127,7 +119,6 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
       const blockedPassed = block - lastBlock - 1;
 
       repeatLastBook(blockedPassed);
-      allBlockData[lastBlock].repeats = blockedPassed;
     }
     lastBlockData = {};
     lastBlock = block;
@@ -137,18 +128,20 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
     computeDepthForBook(book, block, key);
   };
 
-  await utils.processLineByLine(path.join(constants.dataDirectory, "books", `${key}.csv`), computeDepths, (line) => {
+  const isPastEndOfEpoch = (line: string) => {
     const [blockNumber] = line.split(",").map((x) => x.trim());
     const block = Number(blockNumber);
     return block > endBlock;
-  });
+  };
+
+  await utils.processLineByLine(path.join(constants.dataDirectory, "books", `${key}.csv`), computeDepths, isPastEndOfEpoch);
   // await utils.processLineByLine(path.join(constants.dataDirectory, "books", `${key}-${startBlock}-${endBlock}.csv`), computeDepths);
 
   if (lastBlock !== endBlock) {
     const missingBlocks = endBlock - lastBlock - 1;
     // Duplicate last block
     for (const maker of Object.keys(lastBlockData)) {
-      addresses.add(maker);
+      seenOnMarket.add(maker);
       const { D_U_T, mpPrime, askMpRaw, bidMpRaw, U } = lastBlockData[maker];
 
       makerScores[maker].D_u += D_U_T * missingBlocks;
@@ -180,7 +173,7 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
   const takerVolumesArray = await utils.readCSV<TakerVolume>(path.join(constants.dataDirectory, "volume", "taker", key, `${startBlock}-${endBlock}.csv`));
   const takerVolumes: { [user: string]: number } = {};
   for (const { address, usd } of takerVolumesArray) {
-    addresses.add(address);
+    seenOnMarket.add(address);
     takerVolumes[address] = Number(usd);
   }
 
@@ -195,7 +188,7 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
 
   const sumVt = Object.keys(takerVolumes).reduce((acc, val) => acc + (takerVolumes[val] ?? 0), 0);
 
-  const takersAsMakers = [...addresses].map((address) => ({ address, points: { D_b: Number(0), D_u_d: Number(0), mpPrime: Number(0), D_a: Number(0), D_u: Number(0) } }));
+  const takersAsMakers = [...seenOnMarket].map((address) => ({ address, points: { D_b: Number(0), D_u_d: Number(0), mpPrime: Number(0), D_a: Number(0), D_u: Number(0) } }));
 
   const makerScoresArray = Object.keys(makerScores)
     .map((address) => ({ address, points: makerScores[address] }))
@@ -207,6 +200,7 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
     const uptime = (blocksSeen[address] ?? 0) / blocksToSee;
     if (blocksSeen[address] > blocksToSee) {
       console.log("ERROR: blocksSeen[address] > blocksToSee: ", blocksSeen[address], blocksToSee, address);
+      blocksSeen[address] = blocksToSee;
     }
     const u_u = Math.pow(Number(uptime), constants.nu);
     const mVolume = Number(makerVolumes[address]?.Vm ?? 0);
@@ -247,8 +241,6 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
 
   const { out: csv2, headers: headers2 } = utils.convertToCSV(dataOutArr);
 
-  fs.writeFileSync(`data2.json`, JSON.stringify(allBlockData, null, 2));
-
   const depthFile = path.join(constants.dataDirectory, "depth", key, `${startBlock}-${endBlock}.csv`);
 
   if (fs.existsSync(depthFile)) {
@@ -273,13 +265,11 @@ const computeDepthForEpoch = async (key: MarketKeys, startBlock: number, endBloc
   fs.writeFileSync(depthFile, headers2.join(",") + "\n" + csv2);
 };
 
-// TODO: Currently runs OOM due to the large amount of data being processed in a stream, better solution would be to skip into the file
+const seenOnMarketGlobal: { [market: string]: Set<string> } = {};
 const main = async () => {
   console.time("Run");
 
   await midPriceUtils.loadMidPrices();
-
-  const seenOnMarket: { [market: string]: Set<string> } = {};
 
   for (const market of constants.markets) {
     const { key } = market;
@@ -289,17 +279,17 @@ const main = async () => {
       const epoch = constants.epochs[i];
       const lastEpoch = i === 0 ? { start: 0, end: 0 } : constants.epochs[i - 1];
 
-      seenOnMarket[key] = new Set();
+      seenOnMarketGlobal[key] = new Set();
       const takerVolumes = await utils.readCSV<TakerVolume>(path.join(constants.dataDirectory, "volume", "taker", key, `${epoch.start}-${epoch.end}.csv`));
       for (const { address } of takerVolumes) {
-        seenOnMarket[key].add(address);
+        seenOnMarketGlobal[key].add(address);
       }
       const makerVolumes = await utils.readCSV<MakerVolume>(path.join(constants.dataDirectory, "volume", "maker", key, `${epoch.start}-${epoch.end}.csv`));
       for (const { address } of makerVolumes) {
-        seenOnMarket[key].add(address);
+        seenOnMarketGlobal[key].add(address);
       }
       console.log(`Depth for ${key} for epoch ${epoch.start} - ${epoch.end}`);
-      await computeDepthForEpoch(key, epoch.start, epoch.end, lastEpoch.start, lastEpoch.end, seenOnMarket[key]);
+      await computeDepthForEpoch(key, epoch.start, epoch.end, lastEpoch.start, lastEpoch.end, seenOnMarketGlobal[key]);
     }
   }
 

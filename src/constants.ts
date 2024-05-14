@@ -21,6 +21,11 @@ export const endOfEpoch6 = 2_812_693;
 export const startOfEpoch7 = endOfEpoch6 + 1;
 export const endOfEpoch7 = 3_115_093;
 
+export const startOfEpoch8 = endOfEpoch7 + 1;
+export const endOfEpoch8 = 3_417_493;
+
+export const startOfEpoch9 = endOfEpoch8 + 1;
+
 export const epochs = [
   { start: startOfEpoch1, end: endOfEpoch1 },
   { start: startOfEpoch2, end: endOfEpoch2 },
@@ -29,6 +34,7 @@ export const epochs = [
   { start: startOfEpoch5, end: endOfEpoch5 },
   { start: startOfEpoch6, end: endOfEpoch6 },
   { start: startOfEpoch7, end: endOfEpoch7 },
+  { start: startOfEpoch8, end: endOfEpoch8 },
 ] as const;
 
 export const PUNKS40 = "999f220296B5843b2909Cc5f8b4204AacA5341D8";
@@ -61,6 +67,13 @@ export const boosts = [
   { threshold: 10_000, boost: 1.75 },
   { threshold: 0, boost: 1 },
 ] as const;
+
+export const NFTBoosts = {
+  mainnet: 3,
+  forest: 2.5,
+  tree: 1.75,
+  base: 1,
+} as const;
 
 export type MarketKeys = (typeof markets)[number]["key"];
 

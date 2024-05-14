@@ -16,7 +16,11 @@ export async function processLineByLine(name: string, f: (line: string) => void,
       first = false;
       continue;
     }
-    if (stopFn && stopFn(line)) break;
+    if (stopFn && stopFn(line)) {
+      rl.close();
+      // fileStream.close();
+      break;
+    }
     f(line);
     i++;
   }

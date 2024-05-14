@@ -5,7 +5,7 @@ import * as path from "path";
 type PricesForMarket = { [block: number]: number | null };
 type MarketOnBlock = { block: number; key: constants.MarketKeys };
 
-const midPrices = {} as { [K in constants.MarketKeys]: PricesForMarket };
+export const midPrices = {} as { [K in constants.MarketKeys]: PricesForMarket };
 
 export const loadMidPrices = async () => {
   for (const { key } of constants.markets) {
