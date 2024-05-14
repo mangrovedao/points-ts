@@ -48,6 +48,8 @@ export const getTimestamp = async (blockNumber: number) => {
     await loadTimestamps();
     loaded = true;
   }
+  // TODO: Remove this once we have all timestamps
+  return Number(earliestBlock.timestamp + BigInt(BigInt(blockNumber) - earliestBlock.block) * 2n);
   const blockNum = BigInt(blockNumber);
   if (!blockTimestamps.has(blockNum)) {
     const now = Date.now();
