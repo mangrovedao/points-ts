@@ -16,21 +16,4 @@ To compute depths you can run
 
 # Note
 
-Currently the code assumes the book is a slice (block 1 - 10) so you will have to download the book, slice the needed section and then run the calculation
-This means the file should be
-
-StartBlock,{}
-...,
-...,
-EndBlock,{}
-
-A better solution is to handle the entire book file in the calc, but the issue is as follows:
-
-Block 1
-Block 7
-Block 10
-Block 15
-
-If we assume our epoch is Block 8-20 we can "duplicate" block 15 safely but we only know when we hit the line with block 10 that we need to duplicate the book before (book 7) for another block
-
-If the calculation can be updated to handle this, we can use a full book for all calculations (fills works already)
+Currently the code has an issue with using large files and requires a lot of RAM. We can optimise this but we can also use a smaller book to make this work.
