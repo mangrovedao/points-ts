@@ -79,9 +79,7 @@ export type MarketKeys = (typeof markets)[number]["key"];
 
 export const schema = "sgd83"; // TODO: Replace with dynamic lookup
 
-// export const dataDirectory = ""; // Fill in with absolute path to data directory
-
-export const dataDirectory = "E:/Windows_Folders/Documents/points-ts/dump";
+export const dataDirectory = ""; // Fill in with absolute path to data directory
 if (!dataDirectory) throw new Error("dataDirectory not set");
 
 export const v = 0.7;
