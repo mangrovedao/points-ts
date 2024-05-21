@@ -25,6 +25,9 @@ export const startOfEpoch8 = endOfEpoch7 + 1;
 export const endOfEpoch8 = 3_417_493;
 
 export const startOfEpoch9 = endOfEpoch8 + 1;
+export const endOfEpoch9 = 3_719_893;
+
+export const startOfEpoch10 = endOfEpoch9 + 1;
 
 export const epochs = [
   { start: startOfEpoch1, end: endOfEpoch1 },
@@ -35,6 +38,7 @@ export const epochs = [
   { start: startOfEpoch6, end: endOfEpoch6 },
   { start: startOfEpoch7, end: endOfEpoch7 },
   { start: startOfEpoch8, end: endOfEpoch8 },
+  { start: startOfEpoch9, end: endOfEpoch9 },
 ] as const;
 
 export const PUNKS40 = "999f220296B5843b2909Cc5f8b4204AacA5341D8";

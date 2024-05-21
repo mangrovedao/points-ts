@@ -67,7 +67,7 @@ export const cancelBatch = async (batchId: string) => {
   const bearer = await getBearerToken();
 
   return await fetch(`https://waitlist-api.prod.blast.io/v1/contracts/${contractAddress}/batches/${batchId}`, {
-    method: "GET",
+    method: "DELETE",
     headers: {
       Authorization: `Bearer ${bearer}`,
       "Content-Type": "application/json",
@@ -94,7 +94,7 @@ const zodAddressInHex = z.string().transform((addr) => (addr.at(1) != "x" ? `0x$
 const distSchema = z.object({
   rank: z.coerce.number(),
   address: zodAddressInHex,
-  total: zodBigNumber,
+  grandTotal: zodBigNumber,
   share: zodBigNumber,
 });
 
@@ -115,7 +115,7 @@ export type Batch = {
 /**
  * @param goldCalcFn Used to supply a custom function to calculate gold for each row (used for ranks)
  */
-export const sendBatchFromFile = async (file: string, totalToDistribute: Big, type: BatchKind, goldCalcFn: (row: DistType) => Big) => {
+export const sendBatchFromFile = async (file: string, totalToDistribute: Big, type: BatchKind, goldCalcFn?: (row: DistType) => Big) => {
   const round = { DEVELOPER: 6, LIQUIDITY: 2 }[type];
   const leaderboard = await readCSV<{ rank: string; account: string; gold: string }>(file);
   const points = leaderboard.map((row) => distSchema.parse(row)) as DistType[];
@@ -124,7 +124,7 @@ export const sendBatchFromFile = async (file: string, totalToDistribute: Big, ty
 
   const pointsPerAccount = points
     .reduce((acc, row) => {
-      if (row.total.eq(0)) return acc;
+      if (row.grandTotal.eq(0)) return acc;
       const points = rowToGold(row).round(round).toString();
       if (points === "0") return acc;
       acc.push({ points, toAddress: row.address });
@@ -137,6 +137,8 @@ export const sendBatchFromFile = async (file: string, totalToDistribute: Big, ty
   if (totalDistributed.gt(totalToDistribute.plus(0.0001))) {
     throw new Error(`Total distributed points is greater than wanted: ${totalDistributed} vs ${totalToDistribute}`);
   }
+
+  console.log(`Total distributed: ${totalDistributed} vs ${totalToDistribute}`);
 
   await sendBatch({ pointType: type, transfers: pointsPerAccount });
 };
